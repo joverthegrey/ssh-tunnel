@@ -37,11 +37,24 @@ class Tunnel
     private $pipes = [];
 
     /**
+     * Tunnel constructor.
+     *
+     * @param array $config
+     * @throws SSHException
+     */
+    public function __construct(array $config = [])
+    {
+        if (!empty($config)) {
+            $this->open($config);
+        }
+    }
+
+    /**
      * generate a public and private key
      *
      * @return array
      */
-    public function generateKeyPair(): array
+    public static function generateKeyPair(): array
     {
         exec("ssh-keygen -b 2048 -t rsa -f ./ssh.key -N '' -q");
 
@@ -54,19 +67,6 @@ class Tunnel
         @unlink('./ssh.key.pub');
 
         return $res;
-    }
-
-    /**
-     * Tunnel constructor.
-     *
-     * @param array $config
-     * @throws SSHException
-     */
-    public function __construct(array $config = [])
-    {
-        if (!empty($config)) {
-            $this->open($config);
-        }
     }
 
     /**
@@ -142,6 +142,12 @@ class Tunnel
         if (is_resource($this->process))
         {
             $status = proc_get_status($this->process);
+
+            // augment $status, cause proc_get_status thinks the process is stopped ??
+            if (posix_kill($status['pid'], 0)) {
+                $status['running'] = true;
+                $status['exitcode'] = 0;
+            }
         }
         return $status;
     }
@@ -177,7 +183,7 @@ class Tunnel
     {
 
         $cmd = [
-            'ssh',
+            'exec ssh',
             '-p',
             $config['sshPort'],
             sprintf('%s@%s', $config['user'], $config['sshHost']),
@@ -189,13 +195,7 @@ class Tunnel
             '-o',
             sprintf('ServerAliveInterval=%d', self::SSH_SERVER_ALIVE_INTERVAL),
             '-o',
-            'ExitOnForwardFailure=yes',
-            '-o',
             'StrictHostKeyChecking=no',
-            '-o',
-            'KbdInteractiveAuthentication=no',
-            '-o',
-            'PasswordAuthentication=no',
             '-o',
             'BatchMode=yes',
             '-o',
