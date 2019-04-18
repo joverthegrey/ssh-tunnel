@@ -2,23 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Keboola\SSHTunnel\Tests;
+namespace jover\SSH\Tests;
 
-use Keboola\SSHTunnel\SSH;
+use jover\SSH\Tunnel;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Process\Process;
 
 class SSHTest extends TestCase
 {
     protected function tearDown(): void
     {
-        $process = Process::fromShellCommandline('pgrep ssh | xargs -r kill');
-        $process->run();
+        exec('pgrep ssh | xargs -r kill');
     }
 
     public function testGenerateKeyPair(): void
     {
-        $ssh = new SSH();
+        $ssh = new Tunnel();
         $keys = $ssh->generateKeyPair();
 
         $this->assertArrayHasKey('private', $keys);
@@ -30,9 +28,10 @@ class SSHTest extends TestCase
     public function testOpenTunnel(): void
     {
         $config = $this->getConfig();
-        $ssh = new SSH();
-        $sshProcess = $ssh->openTunnel($config);
-        $this->assertEquals(0, $sshProcess->getExitCode());
+        $ssh = new Tunnel();
+        $ssh->open($config);
+        $status = $ssh->status;
+        $this->assertEquals(0, $status['exitcode']);
 
         $this->assertDbConnection($config);
     }
@@ -43,11 +42,12 @@ class SSHTest extends TestCase
             'compression' => true,
         ]);
 
-        $ssh = new SSH();
-        $process = $ssh->openTunnel($config);
+        $ssh = new Tunnel();
+        $ssh->open($config);
+        $status = $ssh->status;
 
-        $this->assertContains('-C', $process->getCommandLine());
-        $this->assertEquals(0, $process->getExitCode());
+        $this->assertContains('-C', $status['command']);
+        $this->assertEquals(0, $status['exitcode']);
 
         $this->assertDbConnection($config);
     }
@@ -60,9 +60,9 @@ class SSHTest extends TestCase
             'remoteHost' => 'shangri la'
         ]);
 
-        $ssh = new SSH();
-        $sshProcess = $ssh->openTunnel($config);
-        $this->assertEquals(0, $sshProcess->getExitCode());
+        $ssh = new Tunnel();
+        $ssh->open($config);
+        $this->assertEquals(0, $status['exitcode']);
 
         $this->assertDbConnection($config);
     }
