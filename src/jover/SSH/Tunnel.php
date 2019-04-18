@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace jover\SSHTunnel;
+namespace jover\SSH;
 
-class SSH
+use Exception as SSHException;
+
+class Tunnel
 {
     /**
      * keepalive setting in seconds
@@ -55,6 +57,19 @@ class SSH
     }
 
     /**
+     * Tunnel constructor.
+     *
+     * @param array $config
+     * @throws SSHException
+     */
+    public function __construct(array $config = [])
+    {
+        if (!empty($config)) {
+            $this->open($config);
+        }
+    }
+
+    /**
      * Open SSH tunnel defined by config
      *
      * @param array $config
@@ -74,7 +89,7 @@ class SSH
      * @return true
      * @throws SSHException
      */
-    public function openTunnel(array $config): bool
+    public function open(array $config): bool
     {
         $config = $this->validateConfig($config);
         $keyFile = $this->writeKeyToFile($config['privateKey']);
@@ -121,7 +136,7 @@ class SSH
      *
      * @return array
      */
-    private function tunnelStatus(): array
+    private function status(): array
     {
         $status = [];
         if (is_resource($this->process))
@@ -134,7 +149,7 @@ class SSH
     /**
      * close the tunnel
      */
-    public function closeTunnel()
+    public function close()
     {
         if (is_resource($this->process)) {
             $pid = $this->status['pid'];
@@ -254,7 +269,7 @@ class SSH
         // just implement the status
         switch($name) {
             case 'status':
-                return $this->tunnelStatus();
+                return $this->status();
                 break;
             default:
                 return null;
@@ -267,6 +282,6 @@ class SSH
      */
     public function __destruct()
     {
-        $this->closeTunnel();
+        $this->close();
     }
 }
