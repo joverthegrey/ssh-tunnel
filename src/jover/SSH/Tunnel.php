@@ -157,17 +157,21 @@ class Tunnel
      */
     public function close()
     {
-        if (is_resource($this->process)) {
-            $pid = $this->status['pid'];
+        $status = $this->status;
+
+        if (!empty($status)) {
+            $pid = $status['pid'];
 
             // cleanup the php end of the process
             foreach ($this->pipes as $pipe) {
                 fclose($pipe);
             }
-            proc_close($this->process);
 
-            // kill the process
+            // terminate tunnel
             posix_kill($pid, SIGTERM);
+
+            // defensive programming (just in case)
+            posix_kill($pid, SIGKILL);
         }
         $this->process = null;
     }
