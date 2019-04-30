@@ -11,7 +11,7 @@ class Tunnel
     /**
      * keepalive setting in seconds
      */
-    private const SSH_SERVER_ALIVE_INTERVAL = 15;
+    const SSH_SERVER_ALIVE_INTERVAL = 15;
 
     /**
      * process of the established ssh tunnel
